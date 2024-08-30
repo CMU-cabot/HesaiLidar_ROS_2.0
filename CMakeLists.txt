@@ -110,6 +110,8 @@ if($ENV{ROS_VERSION} MATCHES "2")
     find_package(rosidl_default_generators REQUIRED)
     find_package(builtin_interfaces REQUIRED)
     find_package(std_msgs REQUIRED)
+    find_package(diagnostic_msgs REQUIRED)
+    find_package(diagnostic_updater REQUIRED)
     
     rosidl_generate_interfaces(${PROJECT_NAME}
       "msg/msg_ros2/UdpPacket.msg"
@@ -258,6 +260,8 @@ if($ENV{ROS_VERSION} MATCHES "2")
   "std_msgs" 
   "sensor_msgs" 
   # "tf2_geometry_msgs"
+  "diagnostic_msgs"
+  "diagnostic_updater"
   )
   rosidl_target_interfaces(hesai_ros_driver_node  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 

@@ -39,3 +39,4 @@ lidar:
       # Topic used to send PTP lock status, offset through ROS
       send_packet_ros: true                         #true: Send packets through ROS 
       send_point_cloud_ros: true                    #true: Send point cloud through ROS    
+      target_fps: 10

@@ -46,6 +46,8 @@
 #include <functional>
 #include <boost/thread.hpp>
 #include "source_drive_common.hpp"
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
 
 class SourceDriver
 {
@@ -108,6 +110,12 @@ protected:
   rclcpp::Publisher<hesai_ros_driver::msg::LossPacket>::SharedPtr loss_pub_;
   rclcpp::Publisher<hesai_ros_driver::msg::Ptp>::SharedPtr ptp_pub_;
 
+  // diagnostics
+  std::shared_ptr<diagnostic_updater::Updater> diagnostics_;
+  std::unique_ptr<diagnostic_updater::TopicDiagnostic> diag_pointcloud_;
+  std::unique_ptr<diagnostic_updater::TopicDiagnostic> diag_packet_;
+  double target_fps_;
+
   //spin thread while recieve data from ROS topic
   boost::thread* subscription_spin_thread_;
 };
@@ -117,8 +125,22 @@ inline void SourceDriver::Init(const YAML::Node& config)
   DriveYamlParam yaml_param;
   yaml_param.GetDriveYamlParam(config, driver_param);
   frame_id_ = driver_param.input_param.frame_id;
-
   node_ptr_.reset(new rclcpp::Node("hesai_ros_driver_node"));
+
+  target_fps_ = driver_param.input_param.target_fps;
+  diagnostics_ = std::make_shared<diagnostic_updater::Updater>(node_ptr_);
+  std::string deviceName = "HesaiLidar";
+  diagnostics_->setHardwareID(deviceName);
+  diag_pointcloud_ = std::make_unique<diagnostic_updater::TopicDiagnostic>(
+      "hesai_pointcloud", *diagnostics_, diagnostic_updater::FrequencyStatusParam(
+        &target_fps_, &target_fps_, 0.1, 2),
+        diagnostic_updater::TimeStampStatusParam());
+
+  diag_packet_ = std::make_unique<diagnostic_updater::TopicDiagnostic>(
+      "hesai_packets", *diagnostics_, diagnostic_updater::FrequencyStatusParam(
+        &target_fps_, &target_fps_, 0.1, 2),
+        diagnostic_updater::TimeStampStatusParam());
+
   if (driver_param.input_param.send_point_cloud_ros) {
     pub_ = node_ptr_->create_publisher<sensor_msgs::msg::PointCloud2>(driver_param.input_param.ros_send_point_topic, 100);
   }
@@ -204,11 +226,17 @@ inline void SourceDriver::Stop()
 inline void SourceDriver::SendPacket(const UdpFrame_t& msg, double timestamp)
 {
   pkt_pub_->publish(ToRosMsg(msg, timestamp));
+  int64_t seconds = static_cast<int64_t>(timestamp);
+  uint32_t nanoseconds = static_cast<uint32_t>((timestamp - seconds) * 1e9);
+  diag_packet_->tick(rclcpp::Time(seconds, nanoseconds));
+  diagnostics_->force_update();
 }
 
 inline void SourceDriver::SendPointCloud(const LidarDecodedFrame<LidarPointXYZIRT>& msg)
 {
   pub_->publish(ToRosMsg(msg, frame_id_));
+  rclcpp::Time now = node_ptr_->now();
+  diag_pointcloud_->tick(now);
 }
 
 inline void SourceDriver::SendCorrection(const u8Array_t& msg)
