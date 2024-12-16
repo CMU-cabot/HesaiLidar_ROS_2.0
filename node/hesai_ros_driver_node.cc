@@ -37,6 +37,7 @@
 #include <ros/package.h>
 #elif ROS2_FOUND
 #include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #endif
 
 #ifdef ROS2_FOUND
@@ -66,12 +67,13 @@ int main(int argc, char** argv)
   std::string config_path;
 
 #ifdef RUN_IN_ROS_WORKSPACE
-   config_path = ros::package::getPath("hesai_ros_driver");
+   package_path = ros::package::getPath("hesai_ros_driver");
 #else
-   config_path = (std::string)PROJECT_PATH;
+   std::string package_name = "cabot_base";
+   std::string package_path = ament_index_cpp::get_package_share_directory(package_name);
 #endif
 
-   config_path += "/config/config.yaml";
+   config_path += package_path + "/config/hesai/config.yaml";
 
 #ifdef ROS_FOUND
   ros::NodeHandle priv_hh("~");
