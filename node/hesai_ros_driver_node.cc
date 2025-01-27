@@ -37,7 +37,6 @@
 #include <ros/package.h>
 #elif ROS2_FOUND
 #include <rclcpp/rclcpp.hpp>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #endif
 
 #ifdef ROS2_FOUND
@@ -58,22 +57,27 @@ int main(int argc, char** argv)
 {
   std::cout << "-------- Hesai Lidar ROS V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
   signal(SIGINT, sigHandler);  ///< bind ctrl+c signal with the sigHandler function
+  //std::string config_path = argv[1];
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("hesai_ros_driver_node");
+  node->declare_parameter<std::string>("config_path", "");
+  std::string config_path = node->get_parameter("config_path").as_string();
+  rclcpp::shutdown();
 #ifdef ROS_FOUND
   ros::init(argc, argv, "hesai_ros_driver_node", ros::init_options::NoSigintHandler);
 #elif ROS2_FOUND
   rclcpp::init(argc, argv);
 #endif
 
-  std::string config_path;
+  //std::string config_path;
 
 #ifdef RUN_IN_ROS_WORKSPACE
-   package_path = ros::package::getPath("hesai_ros_driver");
+   //config_path = ros::package::getPath("hesai_ros_driver");
 #else
-   std::string package_name = "cabot_base";
-   std::string package_path = ament_index_cpp::get_package_share_directory(package_name);
+   //config_path = (std::string)PROJECT_PATH;
 #endif
 
-   config_path += package_path + "/config/hesai/config.yaml";
+   //config_path += "/config/config.yaml";
 
 #ifdef ROS_FOUND
   ros::NodeHandle priv_hh("~");
